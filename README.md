@@ -89,3 +89,6 @@ array([1, 2, 3], dtype=int16)
 >>> modules["BriCA1.OutputModule"].get_in_port("OutputModulePort").buffer
 array([1, 2, 3], dtype=int16)
 </code></pre>
+## Support:
+If you have any question, please send us message on Google Group:  
+https://groups.google.com/d/forum/wbai-dev
