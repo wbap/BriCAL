@@ -1,0 +1,23 @@
+{
+"Header": {
+"Type" : "C",
+"Name" : "OutputComponent",
+"Base" : "BriCA1"
+},
+
+"Modules" : [{
+"Name" : "OutputModule",
+"Ports" : [ "OutputModulePort" ],
+"ImplType" : "BriCA1",
+"ImplClass" : "brica1.NullComponent"
+}
+],
+
+"Ports" : [{
+"Name" : "OutputModulePort",
+"Module" : "OutputModule",
+"Type" : "Input",
+"Shape" : [3]
+}
+]
+}

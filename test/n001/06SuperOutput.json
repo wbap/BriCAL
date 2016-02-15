@@ -1,0 +1,40 @@
+{
+"Header": {
+"Type" : "A",
+"Name" : "SuperOutput",
+"Base" : "Base"
+},
+
+"Modules" : [{
+"Name" : "SuperMainModule",
+"Ports" : [ "PortS1", "PortS2" ]
+},
+{
+"Name" : "BriCA1.OutputModule",
+"Ports" : [ "OutputModulePort" ]
+}
+],
+
+"Ports" : [{
+"Name" : "OutputModulePort",
+"Module" : "BriCA1.OutputModule",
+"Type" : "Input",
+"Shape" : [3]
+},
+{
+"Name" : "PortS2",
+"Module" : "SuperMainModule",
+"Type" : "Output",
+"Shape" : [3]
+}
+],
+
+"Connections" : [{
+"Name" : "Con2",
+"FromModule" : "SuperMainModule",
+"FromPort" : "PortS2",
+"ToModule" : "BriCA1.OutputModule",
+"ToPort" : "OutputModulePort"
+}
+]
+}

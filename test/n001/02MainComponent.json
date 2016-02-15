@@ -1,0 +1,29 @@
+{
+"Header": {
+"Type" : "C",
+"Name" : "MainComponent",
+"Base" : "BriCA1"
+},
+
+"Modules" : [{
+"Name" : "MainModule",
+"Ports" : [ "Port1", "Port2" ],
+"ImplType" : "BriCA1",
+"ImplClass" : "brica1.PipeComponent"
+}
+],
+
+"Ports" : [{
+"Name" : "Port1",
+"Module" : "MainModule",
+"Type" : "Input",
+"Shape" : [3]
+},
+{
+"Name" : "Port2",
+"Module" : "MainModule",
+"Type" : "Output",
+"Shape" : [3]
+}
+]
+}

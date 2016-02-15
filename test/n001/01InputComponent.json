@@ -1,0 +1,24 @@
+{
+"Header": {
+"Type" : "C",
+"Name" : "InputComponent",
+"Base" : "BriCA1",
+"Comment" : "正常系：サンプルデータが正常に動作することを確認"
+},
+
+"Modules" : [{
+"Name" : "InputModule",
+"Ports" : [ "InputModulePort" ],
+"ImplType" : "BriCA1",
+"ImplClass" : "brica1.ConstantComponent"
+}
+],
+
+"Ports" : [{
+"Name" : "InputModulePort",
+"Module" : "InputModule",
+"Type" : "Output",
+"Shape" : [3]
+}
+]
+}
