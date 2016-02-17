@@ -37,7 +37,7 @@ In this example, you load six files from 'test/n001' directory.
 <pre><code>>>> f = open("[YOUR GIT DIRECTORY]/brical/test/n001/01InputComponent.json")
 >>> nb.load_file(f)
 True
->>> f = open("[YOUR GIT DIRECTORY]/brical20160208/brical/test/n001/02MainComponent.json")
+>>> f = open("[YOUR GIT DIRECTORY]/brical/test/n001/02MainComponent.json")
 >>> nb.load_file(f)
 True
 >>> f = open("[YOUR GIT DIRECTORY]/brical/test/n001/03OutputComponent.json")
