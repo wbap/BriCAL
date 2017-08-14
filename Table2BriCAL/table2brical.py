@@ -86,7 +86,7 @@ class Table2BriCAL:
         self.addHierarchyToModules()
 
     def createPort(self, type, module, origin, target):
-        portName = origin + "-" + target + "-" + type
+        portName = self.alterModuleName(origin) + "-" + self.alterModuleName(target) + "-" + type
         if "Ports" in module:
             ports = module["Ports"]
         else:
@@ -112,12 +112,16 @@ class Table2BriCAL:
         connection["Name"] = connectionName
         connection["FromModule"] = originName
         connection["ToModule"] = targetName
-        outputPortName = originName + "-" + targetName + "-Output"
-        inputPortName = originName + "-" + targetName + "-Input"
+        outputPortName = self.alterModuleName(originName) + "-" + self.alterModuleName(targetName) + "-Output"
+        inputPortName = self.alterModuleName(originName) + "-" + self.alterModuleName(targetName) + "-Input"
         connection["FromPort"] = outputPortName # self.getPath(originID) + "/" + outputPortName
         connection["ToPort"] = inputPortName    # self.getPath(targetID) + "/" + inputPortName
         connection["Comment"] = "A connection from " + originName + " to " + targetName
         self.connections.append(connection)
+
+    @staticmethod
+    def alterModuleName(name):
+        return name.replace('.', '#')
 
     def addHierarchyToModules(self):
         for moduleID in self.modules:
