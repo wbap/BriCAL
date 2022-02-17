@@ -17,78 +17,75 @@ Clone brica1 and brical from GitHub.
 Add brica related paths to PYTHONPATH:
 <pre><code>export PYTHONPATH=[YOUR GIT DIRECTORY]/brical:[YOUR GIT DIRECTORY]/brica1:$PYTHONPATH
 </code></pre>
-Launch python (2.7):
+Launch python (3.*):
 
 `
 $ python
 `
 
 Import libraries:
-<pre><code>>>> import numpy as np
->>> import brical
->>> import brica1    
-</code></pre>
+
+	>>> import numpy as np
+	>>> import brical
+	>>> import brica1    
+
 Instantiate brical.NetworkBuilder.
 <pre><code>>>> nb=brical.NetworkBuilder()
 </code></pre>
 Load JSON files:
 
 In this example, you load six files from 'test/n001' directory.
-<pre><code>>>> f = open("[YOUR GIT DIRECTORY]/brical/test/n001/01InputComponent.json")
->>> nb.load_file(f)
-True
->>> f = open("[YOUR GIT DIRECTORY]/brical/test/n001/02MainComponent.json")
->>> nb.load_file(f)
-True
->>> f = open("[YOUR GIT DIRECTORY]/brical/test/n001/03OutputComponent.json")
->>> nb.load_file(f)
-True
->>> f = open("[YOUR GIT DIRECTORY]/brical/test/n001/04SuperInput.json")
->>> nb.load_file(f)
-True
->>> f = open("[YOUR GIT DIRECTORY]/brical/test/n001/05SuperMain.json")
->>> nb.load_file(f)
-True
->>> f = open("[YOUR GIT DIRECTORY]/brical/test/n001/06SuperOutput.json")
->>> nb.load_file(f)
-True
-</code></pre>
+	>>>> f = open("[YOUR GIT DIRECTORY]/brical/test/n001/01InputComponent.json")
+	>>> nb.load_file(f)
+	True
+	>>> f = open("[YOUR GIT DIRECTORY]/brical/test/n001/02MainComponent.json")
+	>>> nb.load_file(f)
+	True
+	>>> f = open("[YOUR GIT DIRECTORY]/brical/test/n001/03OutputComponent.json")
+	>>> nb.load_file(f)
+	True
+	>>> f = open("[YOUR GIT DIRECTORY]/brical/test/n001/04SuperInput.json")
+	>>> nb.load_file(f)
+	True
+	>>> f = open("[YOUR GIT DIRECTORY]/brical/test/n001/05SuperMain.json")
+	>>> nb.load_file(f)
+	True
+	>>> f = open("[YOUR GIT DIRECTORY]/brical/test/n001/06SuperOutput.json")
+	>>> nb.load_file(f)
+	True
+
 Check network consistency:
-<pre><code>>>> nb.check_consistency()
-True
-</code></pre>
+	>>> nb.check_consistency()
+	True
 Procedures before running the BriCA network with AgentBuilder class:
-<pre><code>>>> network = nb.get_network()
->>> scheduler = brica1.VirtualTimeSyncScheduler()
->>> agent_builder = brical.AgentBuilder()
->>> agent = agent_builder.create_agent(scheduler, nb)
-</code></pre>
+	>>> network = nb.get_network()
+	>>> agent_builder = brical.AgentBuilder()
+	>>> agent = agent_builder.create_agent(nb)
+	>>> scheduler = brica1.VirtualTimeSyncScheduler(agent)
 BriCA modules are accessed via the module dictionary obtained with agent_builder.get_modules():
-<pre><code>>>> modules = agent_builder.get_modules()
-</code></pre>
+	>>> modules = agent_builder.get_modules()
 Setting non-zero values to the input module:
-<pre><code>>>> v = np.array([1, 2, 3], dtype=np.int16)
->>> modules["BriCA1.InputModule"].get_component("BriCA1.InputModule").set_state("InputModulePort", v)
-</code></pre>
+	>>> v = np.array([1, 2, 3], dtype=np.int16)
+	>>> modules["BriCA1.InputModule"].get_component("BriCA1.InputModule").set_state("InputModulePort", v)
+
 Setting a map for PipeComponent (see BriCA1 tutorial for explanation):
-<pre><code>>>> modules["BriCA1.MainModule"].get_component("BriCA1.MainModule").set_map("Port1", "Port2")
-</code></pre>
+	>>>> modules["BriCA1.MainModule"].get_component("BriCA1.MainModule").set_map("Port1", "Port2")
 Now run the network step by step and see if values are transmitted to the ports:
-<pre><code>>>> agent.step()
-1.0
->>> modules["BriCA1.InputModule"].get_out_port("InputModulePort").buffer
-array([1, 2, 3], dtype=int16)
->>> modules["BriCA1.MainModule"].get_out_port("Port2").buffer
-array([0, 0, 0], dtype=int16)
->>> agent.step()
-2.0
->>> modules["BriCA1.MainModule"].get_out_port("Port2").buffer
-array([1, 2, 3], dtype=int16)
->>> agent.step()
-3.0
->>> modules["BriCA1.OutputModule"].get_in_port("OutputModulePort").buffer
-array([1, 2, 3], dtype=int16)
-</code></pre>
+	>>> scheduler.step()
+	1
+	>>> modules["BriCA1.InputModule"].get_out_port("InputModulePort").buffer
+	array([1, 2, 3], dtype=int16)
+	>>> modules["BriCA1.MainModule"].get_out_port("Port2").buffer
+	array([0, 0, 0], dtype=int16)
+	>>> scheduler.step()
+	2
+	>>> modules["BriCA1.MainModule"].get_out_port("Port2").buffer
+	array([1, 2, 3], dtype=int16)
+	>>> scheduler.step()
+	3
+	>>> modules["BriCA1.OutputModule"].get_in_port("OutputModulePort").buffer
+	array([1, 2, 3], dtype=int16)
+
 ## Support:
 If you have any question, please send us message on Google Group:  
 https://groups.google.com/d/forum/wbai-dev
