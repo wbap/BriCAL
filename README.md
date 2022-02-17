@@ -15,13 +15,14 @@ The interpreter reads BriCA language files (currently language files are in JSON
 Clone brica1 and brical from GitHub.
 
 Add brica related paths to PYTHONPATH:
-<pre><code>export PYTHONPATH=[YOUR GIT DIRECTORY]/brical:[YOUR GIT DIRECTORY]/brica1:$PYTHONPATH
-</code></pre>
+
+	export PYTHONPATH=[YOUR GIT DIRECTORY]/brical:[YOUR GIT DIRECTORY]/brica1:$PYTHONPATH
+
 Launch python (3.*):
 
-`
-$ python
-`
+
+	$ python
+
 
 Import libraries:
 
@@ -30,11 +31,13 @@ Import libraries:
 	>>> import brica1    
 
 Instantiate brical.NetworkBuilder.
-<pre><code>>>> nb=brical.NetworkBuilder()
-</code></pre>
+
+	>>>> nb=brical.NetworkBuilder()
+
 Load JSON files:
 
 In this example, you load six files from 'test/n001' directory.
+
 	>>>> f = open("[YOUR GIT DIRECTORY]/brical/test/n001/01InputComponent.json")
 	>>> nb.load_file(f)
 	True
@@ -55,22 +58,32 @@ In this example, you load six files from 'test/n001' directory.
 	True
 
 Check network consistency:
+
 	>>> nb.check_consistency()
 	True
+
 Procedures before running the BriCA network with AgentBuilder class:
+
 	>>> network = nb.get_network()
 	>>> agent_builder = brical.AgentBuilder()
 	>>> agent = agent_builder.create_agent(nb)
 	>>> scheduler = brica1.VirtualTimeSyncScheduler(agent)
+
 BriCA modules are accessed via the module dictionary obtained with agent_builder.get_modules():
+
 	>>> modules = agent_builder.get_modules()
+
 Setting non-zero values to the input module:
+
 	>>> v = np.array([1, 2, 3], dtype=np.int16)
 	>>> modules["BriCA1.InputModule"].get_component("BriCA1.InputModule").set_state("InputModulePort", v)
 
 Setting a map for PipeComponent (see BriCA1 tutorial for explanation):
+
 	>>>> modules["BriCA1.MainModule"].get_component("BriCA1.MainModule").set_map("Port1", "Port2")
+
 Now run the network step by step and see if values are transmitted to the ports:
+
 	>>> scheduler.step()
 	1
 	>>> modules["BriCA1.InputModule"].get_out_port("InputModulePort").buffer
