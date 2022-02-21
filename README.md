@@ -32,13 +32,13 @@ Import libraries:
 
 Instantiate brical.NetworkBuilder.
 
-	>>>> nb=brical.NetworkBuilder()
+	>>> nb=brical.NetworkBuilder()
 
 Load JSON files:
 
 In this example, you load six files from 'test/n001' directory.
 
-	>>>> f = open("[YOUR GIT DIRECTORY]/brical/test/n001/01InputComponent.json")
+	>>> f = open("[YOUR GIT DIRECTORY]/brical/test/n001/01InputComponent.json")
 	>>> nb.load_file(f)
 	True
 	>>> f = open("[YOUR GIT DIRECTORY]/brical/test/n001/02MainComponent.json")
@@ -76,11 +76,11 @@ BriCA modules are accessed via the module dictionary obtained with agent_builder
 Setting non-zero values to the input module:
 
 	>>> v = np.array([1, 2, 3], dtype=np.int16)
-	>>> modules["BriCA1.InputModule"].get_component("BriCA1.InputModule").set_state("InputModulePort", v)
+	>>> modules["BriCA1.InputModule"].set_state("InputModulePort", v)
 
 Setting a map for PipeComponent (see BriCA1 tutorial for explanation):
 
-	>>>> modules["BriCA1.MainModule"].get_component("BriCA1.MainModule").set_map("Port1", "Port2")
+	>>> modules["BriCA1.MainModule"].set_map("Port1", "Port2")
 
 Now run the network step by step and see if values are transmitted to the ports:
 

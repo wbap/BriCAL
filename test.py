@@ -46,7 +46,6 @@ network = network_builder.get_network()
 
 agent_builder = brical.AgentBuilder()
 agent = agent_builder.create_agent(network_builder)
-scheduler = brica1.VirtualTimeSyncScheduler(agent)
 if agent == agent_builder.INCONSISTENT:
     sys.stderr.write("ERROR: INCONSISTENT!\n")
 elif agent == agent_builder.NOT_GROUNDED:
@@ -67,7 +66,7 @@ for module, v in network["ModuleDictionary"].items():
     impl = v["ImplClass"]
     if impl == "":
         continue
-    component = modules[module].get_component(module)
+    component = modules[module]
     ports = v["Ports"]
     buffers.append([module, component, ports])
     if "InputModule" in module:  # Setting of initial data
@@ -98,6 +97,7 @@ for module, v in network["ModuleDictionary"].items():
 
 # Run
 print("--- Run ---")
+scheduler = brica1.VirtualTimeSyncScheduler(agent)
 for i in range(len(buffers)):
     print(scheduler.step())
     for b in buffers:

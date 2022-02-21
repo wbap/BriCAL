@@ -3,7 +3,7 @@
 "Type" : "C",
 "Name" : "InputComponent",
 "Base" : "BriCA1",
-"Comment" : "正常系：サンプルデータが正常に動作することを確認"
+"Comment" : "Normal case: to confirm BriCAL works with test case n001"
 },
 
 "Modules" : [{
