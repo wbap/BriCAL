@@ -42,16 +42,25 @@ for file in sorted(list_file):
         exit()
 network = network_builder.get_network()
 
-# Create agent
+if not network_builder.check_consistency():
+    sys.stderr.write("ERROR: INCONSISTENT!\n")
+if not network_builder.check_grounding():
+    sys.stderr.write("ERROR: NOT_GROUNDED!\n")
 
+# Initialize components
+for module, v in network["ModuleDictionary"].items():
+    impl = v["ImplClass"]
+    if impl != "":
+        component = network_builder.unit_dic[module]
+        component.__init__()
+
+# Create ports
+network_builder.make_ports()
+
+# Create agent
 agent_builder = brical.AgentBuilder()
 agent = agent_builder.create_agent(network_builder)
-if agent == agent_builder.INCONSISTENT:
-    sys.stderr.write("ERROR: INCONSISTENT!\n")
-elif agent == agent_builder.NOT_GROUNDED:
-    sys.stderr.write("ERROR: NOT_GROUNDED!\n")
-elif agent == agent_builder.COMPONENT_NOT_FOUND:
-    sys.stderr.write("ERROR: COMPONENT_NOT_FOUND!\n")
+
 if type(agent) != brica1.Agent:
     exit()
 

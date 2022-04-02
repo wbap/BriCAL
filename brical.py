@@ -328,7 +328,7 @@ class NetworkBuilder:
                 if debug:
                     print("Use the existing ImplClass " + implclass + " for " + module_name + ".")
                 try:
-                    self.unit_dic[module_name] = eval(implclass + '()')  # New ImplClass instance
+                    self.unit_dic[module_name] = eval(implclass + '.__new__(' + implclass + ')')  # New ImplClass instance
                 except (ValueError, SyntaxError):
                     v = implclass.rsplit(".", 1)
                     mod_name = v[0]
@@ -341,6 +341,10 @@ class NetworkBuilder:
                         sys.stderr.write("ERROR: Module " + module_name
                                          + " at the bottom not grounded as a Component!\n")
                         return_value = False
+        return return_value
+
+    def make_ports(self):
+        for module_name, v in self.module_dictionary.items():
             try:
                 ports = self.module_dictionary[module_name]['Ports']
                 for port_name in ports:
@@ -348,9 +352,9 @@ class NetworkBuilder:
                     port_v = self.__ports[full_port_name]
                     self.__make_a_port(module_name, port_v['IO'], port_name, port_v['Shape'])
             except KeyError:
-                sys.stderr.write("ERROR: Module " + module_name + " at the bottom not grounded as a Component!\n")
+                sys.stderr.write("ERROR: cannot create a port for Component " + module_name + "!\n")
                 return False
-        return return_value
+        return True
 
     def make_connections(self, module_name, sub_modules):
         for sub_module in sub_modules:
@@ -645,16 +649,9 @@ class AgentBuilder:
     def __init__(self):
         self.INCONSISTENT = 1
         self.NOT_GROUNDED = 2
-        self.COMPONENT_NOT_FOUND = 3
         self.unit_dic = None
 
     def create_agent(self, network):
-        if not network.check_consistency():
-            return self.INCONSISTENT
-
-        if not network.check_grounding():
-            return self.NOT_GROUNDED
-
         for module, super_module in network.super_modules.items():
             if super_module in network.module_dictionary:
                 if isinstance(network.unit_dic[module], brica1.Component):

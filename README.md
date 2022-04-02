@@ -62,9 +62,24 @@ Check network consistency:
 	>>> nb.check_consistency()
 	True
 
+Check component grounding:
+
+    >>> nb.check_grounding()
+    True
+
+Initializing components (according to the component specs):
+
+    >>> nb.unit_dic['BriCA1.InputModule'].__init__()
+    >>> nb.unit_dic['BriCA1.MainModule'].__init__()
+    >>> nb.unit_dic['BriCA1.OutputModule'].__init__()
+
+Creating ports:
+
+    >>> nb.make_ports()
+    True
+
 Procedures before running the BriCA network with AgentBuilder class:
 
-	>>> network = nb.get_network()
 	>>> agent_builder = brical.AgentBuilder()
 	>>> agent = agent_builder.create_agent(nb)
 	>>> scheduler = brica1.VirtualTimeSyncScheduler(agent)
