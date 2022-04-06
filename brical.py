@@ -46,15 +46,13 @@ class NetworkBuilder:
         self.__alias_in = {}
         self.__alias_out = {}
         self.unit_dic = {}  # Map: BriCA unit name ⇒ unit object
-        self.super_modules = {}  # Super modules
+        self.super_module = {}   # Sub ⇒ Super modules
+        self.sub_modules = {}    # Super ⇒ Sub modules
         self.module_dictionary = {}
-        self.sub_modules = {}
         self.__ports = {}
         self.__connections = {}
         self.__comments = {}
         self.__network = {}
-        self.__super_sub_modules = {}  # Super & Sub modules
-        self.__sub_super_modules = {}  # Super & Sub modules
         self.__load_files = []
 
     def load_file(self, file_object):
@@ -127,9 +125,22 @@ class NetworkBuilder:
         return:
           the network created by load_file(self, file_object)
         """
-        return {"ModuleDictionary": self.module_dictionary, "SuperModules": self.super_modules,
+        return {"ModuleDictionary": self.module_dictionary, "SuperModules": self.super_module,
                 "SubModules": self.sub_modules, "Ports": self.__ports, "Connections": self.__connections,
                 "Comments": self.__comments}
+
+    def upper_p(self, module1, module2):
+        if module2 in self.super_module:
+            upper = self.super_module[module2]
+            if module1 == upper:
+                return True
+            else:
+                if self.upper_p(module1, upper):
+                    return True
+                else:
+                    return False
+        else:
+            return False
 
     def check_consistency(self):
         """
@@ -146,7 +157,7 @@ class NetworkBuilder:
                 self.unit_dic[module_name] = brica1.Module()  # New Module instance
 
         # SuperModule consistency check
-        for module, superModule in self.super_modules.items():
+        for module, superModule in self.super_module.items():
             if superModule not in self.module_dictionary:
                 sys.stderr.write("ERROR: Super Module {0} is not defined!\n".format(superModule))
                 return False
@@ -173,11 +184,12 @@ class NetworkBuilder:
         for module_name in self.module_dictionary:
             ports = self.module_dictionary[module_name]["Ports"]
             if len(ports) == 0:
-                sys.stderr.write("ERROR: The specified module {0} does not have the port!\n".format(module_name))
+                sys.stderr.write("ERROR: The specified module {0} does not have ports!\n".format(module_name))
                 return False
             for port in ports:
                 if not module_name + "." + port in self.__ports:
-                    sys.stderr.write("ERROR: The specified module {0} does not have the port!\n".format(module_name))
+                    sys.stderr.write("ERROR: The specified module {0} does not have the port  {1}!\n".
+                                     format(module_name, port))
                     return False
 
         for port_name, v in self.__ports.items():
@@ -240,29 +252,8 @@ class NetworkBuilder:
             to_unit = self.__ports[v[0]]["Module"]
             from_unit = self.__ports[v[1]]["Module"]
 
-            # if from_unit & to_unit belong to the same level
-            if (from_unit not in self.__super_sub_modules) and (to_unit not in self.__super_sub_modules) or \
-                    (from_unit in self.__super_sub_modules and to_unit in self.__super_sub_modules and
-                     (self.__super_sub_modules[from_unit] == self.__super_sub_modules[to_unit])):
-                try:
-                    fr_port_obj = self.unit_dic[from_unit].get_out_port(from_port)
-                    to_port_obj = self.unit_dic[to_unit].get_in_port(to_port)
-                    if fr_port_obj.buffer.shape != to_port_obj.buffer.shape:
-                        sys.stderr.write("ERROR: Port dimension unmatched!\n")
-                        return False
-                    # Registering a connection
-                    self.__connections_from_to[from_unit + ":" + to_unit] = (from_port, to_port)
-                    if debug:
-                        print(
-                            "Creating a connection from " + from_port + " of " + from_unit + " to " + to_port +
-                            " of " + to_unit + ".\n")
-                except KeyError:
-                    sys.stderr.write(
-                        "ERROR: adding a connection from " + from_unit + " to " + to_unit +
-                        " on the same level but not from an output port to an input port!\n")
-                    return False
-            # else if from_unit is the direct super module of the to_unit
-            elif to_unit in self.__super_sub_modules and self.__super_sub_modules[to_unit] == from_unit:
+            # else if from_unit is an upper module of to_unit
+            if self.upper_p(from_unit, to_unit):
                 try:
                     fr_port_obj = self.unit_dic[from_unit].get_in_port(from_port)
                     to_port_obj = self.unit_dic[to_unit].get_in_port(to_port)
@@ -280,8 +271,8 @@ class NetworkBuilder:
                         "ERROR: Error adding a connection from the super module " + from_unit + " to " + to_unit +
                         " but not from an input port to an input port!\n")
                     return False
-            # else if to_unit is the direct super module of the from_unit
-            elif from_unit in self.__super_sub_modules and self.__super_sub_modules[from_unit] == to_unit:
+            # else if to_unit is an upper module of from_unit
+            elif self.upper_p(to_unit, from_unit):
                 try:
                     fr_port_obj = self.unit_dic[from_unit].get_out_port(from_port)
                     to_port_obj = self.unit_dic[to_unit].get_out_port(to_port)
@@ -299,13 +290,25 @@ class NetworkBuilder:
                         "ERROR: Error adding a connection from " + from_unit + " to its super module " + to_unit
                         + " but not from an output port to an output port!")
                     return False
-            # else connection level error!
+            # else two modules are not in inclusion relation
             else:
-                sys.stderr.write(
-                    "ERROR: Trying to add a connection between units " + from_unit + " and " + to_unit +
-                    " in a remote level!\n")
-                return False
-
+                try:
+                    fr_port_obj = self.unit_dic[from_unit].get_out_port(from_port)
+                    to_port_obj = self.unit_dic[to_unit].get_in_port(to_port)
+                    if fr_port_obj.buffer.shape != to_port_obj.buffer.shape:
+                        sys.stderr.write("ERROR: Port dimension unmatched!\n")
+                        return False
+                    # Registering a connection
+                    self.__connections_from_to[from_unit + ":" + to_unit] = (from_port, to_port)
+                    if debug:
+                        print(
+                            "Creating a connection from " + from_port + " of " + from_unit + " to " + to_port +
+                            " of " + to_unit + ".\n")
+                except KeyError:
+                    sys.stderr.write(
+                        "ERROR: adding a connection from " + from_unit + " to " + to_unit +
+                        " on the same level but not from an output port to an input port!\n")
+                    return False
         return True
 
     def check_grounding(self):
@@ -317,7 +320,7 @@ class NetworkBuilder:
         """
         return_value = True
         for module_name, v in self.module_dictionary.items():
-            if module_name in self.__sub_super_modules:
+            if module_name in self.sub_modules:
                 continue
             implclass = v["ImplClass"]
             if implclass == "":
@@ -328,15 +331,16 @@ class NetworkBuilder:
                 if debug:
                     print("Use the existing ImplClass " + implclass + " for " + module_name + ".")
                 try:
-                    self.unit_dic[module_name] = eval(implclass + '.__new__(' + implclass + ')')  # New ImplClass instance
-                except (ValueError, SyntaxError):
+                    # New ImplClass instance
+                    self.unit_dic[module_name] = eval(implclass + '.__new__(' + implclass + ')')
+                except (NameError, ValueError, SyntaxError):
                     v = implclass.rsplit(".", 1)
                     mod_name = v[0]
                     class_name = v[1]
                     try:
-                        mod = __import__(mod_name, globals(), locals(), [class_name], -1)
+                        mod = __import__(mod_name, globals(), locals(), [class_name], 0)    # -1)
                         klass = getattr(mod, class_name)
-                        self.unit_dic[module_name] = klass()
+                        self.unit_dic[module_name] = klass.__new__(klass)
                     except AttributeError:
                         sys.stderr.write("ERROR: Module " + module_name
                                          + " at the bottom not grounded as a Component!\n")
@@ -357,24 +361,36 @@ class NetworkBuilder:
         return True
 
     def make_connections(self, module_name, sub_modules):
-        for sub_module in sub_modules:
-            if module_name is not None:     # super-module
-                module_names = module_name + ":" + sub_module
-                if module_names in self.__alias_in:
-                    from_port, to_port = self.__alias_in[module_names]
-                    self.unit_dic[sub_module].alias_in_port(self.unit_dic[module_name], from_port, to_port)
-                module_names = sub_module + ":" + module_name
-                if module_names in self.__alias_out:
-                    from_port, to_port = self.__alias_out[module_names] # from_port: sub / to_port: upper
-                    self.unit_dic[sub_module].alias_out_port(self.unit_dic[module_name], to_port, from_port)
-            for sub_module2 in sub_modules:
-                if sub_module2 != sub_module:
-                    module_names = sub_module + ":" + sub_module2
-                    if module_names in self.__connections_from_to:
-                        from_port, to_port = self.__connections_from_to[module_names]
-                        brica1.connect((self.unit_dic[sub_module], from_port), (self.unit_dic[sub_module2], to_port))
-            if sub_module in self.__sub_super_modules:
-                self.make_connections(sub_module, self.__sub_super_modules[sub_module])   # recursive call
+        if module_name is not None:
+            self.__set_aliases(module_name)
+        else:
+            for submodule in sub_modules:
+                self.__set_aliases(submodule)
+        for key in self.__connections_from_to.keys():
+            from_port, to_port = self.__connections_from_to[key]
+            module_names = key.split(':')
+            brica1.connect((self.unit_dic[module_names[0]], from_port), (self.unit_dic[module_names[1]], to_port))
+
+    def __set_aliases(self, module_name):
+        lower_modules = []
+        lower_modules = self.__get_lower_modules(module_name, lower_modules)
+        for sub_module in lower_modules:
+            module_names = module_name + ":" + sub_module
+            if module_names in self.__alias_in:
+                from_port, to_port = self.__alias_in[module_names]
+                self.unit_dic[sub_module].alias_in_port(self.unit_dic[module_name], from_port, to_port)
+            module_names = sub_module + ":" + module_name
+            if module_names in self.__alias_out:
+                from_port, to_port = self.__alias_out[module_names]  # from_port: sub / to_port: upper
+                self.unit_dic[sub_module].alias_out_port(self.unit_dic[module_name], to_port, from_port)
+            self.__set_aliases(sub_module)
+
+    def __get_lower_modules(self, module, lower_modules):
+        if module in self.sub_modules:
+            lower_modules = lower_modules + self.sub_modules[module]
+            for submodule in self.sub_modules[module]:
+                self.__get_lower_modules(submodule, lower_modules)
+        return lower_modules
 
     def __make_a_port(self, module_name, io, port_name, shape):
         module = self.unit_dic[module_name]
@@ -453,14 +469,13 @@ class NetworkBuilder:
             supermodule = self.__prefix_base_name_space(supermodule)
         if supermodule != "":
             # Multiple registration
-            if module_name in self.super_modules:
+            if module_name in self.super_module:
                 print("Super module '%s' of '%s' is replaced with '%s'." % (
-                    self.super_modules[module_name], module_name, supermodule))
-            self.super_modules[module_name] = supermodule
-            self.__super_sub_modules[module_name] = supermodule
-            if supermodule not in self.__sub_super_modules:
-                self.__sub_super_modules[supermodule] = []
-            self.__sub_super_modules[supermodule].append(module_name)
+                    self.super_module[module_name], module_name, supermodule))
+            self.super_module[module_name] = supermodule
+            if supermodule not in self.sub_modules:
+                self.sub_modules[supermodule] = []
+            self.sub_modules[supermodule].append(module_name)
 
         if "SubModules" in module:
             for submodule in module["SubModules"]:
@@ -468,12 +483,9 @@ class NetworkBuilder:
                     submodule = self.__prefix_base_name_space(submodule)
                     if module_name not in self.sub_modules:
                         self.sub_modules[module_name] = []
-                    self.sub_modules[module_name].append(submodule)
-                    self.__super_sub_modules[submodule] = module_name
-                    if module_name not in self.__sub_super_modules[module_name]:
-                        self.__sub_super_modules[module_name] = []
-                    if submodule not in self.__sub_super_modules[module_name]:
-                        self.__sub_super_modules[module_name].append(submodule)
+                    if submodule not in self.sub_modules[module_name]:
+                        self.sub_modules[module_name].append(submodule)
+                    self.super_module[submodule] = module_name
 
         if "Comment" in module:
             self.__comments["Modules." + module_name] = module["Comment"]
@@ -490,8 +502,8 @@ class NetworkBuilder:
         if superunit == subunit:
             return True
         val = superunit
-        while val in self.__super_sub_modules:
-            val = self.__super_sub_modules[val]
+        while val in self.super_module:
+            val = self.super_module[val]
             if val == subunit:
                 return True
 
@@ -652,7 +664,7 @@ class AgentBuilder:
         self.unit_dic = None
 
     def create_agent(self, network):
-        for module, super_module in network.super_modules.items():
+        for module, super_module in network.super_module.items():
             if super_module in network.module_dictionary:
                 if isinstance(network.unit_dic[module], brica1.Component):
                     network.unit_dic[super_module].add_component(module, network.unit_dic[module])
@@ -666,7 +678,34 @@ class AgentBuilder:
         agent = brica1.Agent()
         sub_modules = []
         for unit_key in network.unit_dic.keys():
-            if unit_key not in network.super_modules:   # top level
+            if unit_key not in network.super_module:   # top level
+                if isinstance(network.unit_dic[unit_key], brica1.Component):
+                    agent.add_component(unit_key, network.unit_dic[unit_key])
+                elif isinstance(network.unit_dic[unit_key], brica1.Module):
+                    agent.add_submodule(unit_key, network.unit_dic[unit_key])
+                sub_modules.append(unit_key)
+                if debug:
+                    print("Adding a module " + unit_key + " to a BriCA agent.")
+        network.make_connections(None, sub_modules)
+        self.unit_dic = network.unit_dic
+        return agent
+
+    def create_gym_agent(self, network, env):
+        for module, super_module in network.super_module.items():
+            if super_module in network.module_dictionary:
+                if isinstance(network.unit_dic[module], brica1.Component):
+                    network.unit_dic[super_module].add_component(module, network.unit_dic[module])
+                elif isinstance(network.unit_dic[module], brica1.Module):
+                    network.unit_dic[super_module].add_submodule(module, network.unit_dic[module])
+                if debug:
+                    print("Adding a module " + module + " to " + super_module + ".")
+
+        # Main logic
+
+        agent = brica1.Agent()
+        sub_modules = []
+        for unit_key in network.unit_dic.keys():
+            if unit_key not in network.super_module:   # top level
                 if isinstance(network.unit_dic[unit_key], brica1.Component):
                     agent.add_component(unit_key, network.unit_dic[unit_key])
                 elif isinstance(network.unit_dic[unit_key], brica1.Module):
