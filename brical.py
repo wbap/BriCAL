@@ -261,7 +261,10 @@ class NetworkBuilder:
                         sys.stderr.write("ERROR: Port dimension unmatched!\n")
                         return False
                     # Registering a connection (alias)
-                    self.__alias_in[from_unit + ":" + to_unit] = (from_port, to_port)
+                    key = from_unit + ":" + to_unit
+                    if key not in self.__alias_in:
+                        self.__alias_in[key] = []
+                    self.__alias_in[key].append((from_port, to_port))
                     if debug:
                         print(
                             "Creating a connection (alias) from " + from_port + " of " + from_unit + " to "
@@ -280,7 +283,10 @@ class NetworkBuilder:
                         sys.stderr.write("ERROR: Port dimension unmatched!\n")
                         return False
                     # Registering a connection (alias)
-                    self.__alias_out[from_unit + ":" + to_unit] = (from_port, to_port)
+                    key = from_unit + ":" + to_unit
+                    if key not in self.__alias_out:
+                        self.__alias_out[key] = []
+                    self.__alias_out[key].append((from_port, to_port))
                     if debug:
                         print(
                             "Creating a connection (alias) from " + from_port + " of " + from_unit + " to " + to_port +
@@ -299,7 +305,10 @@ class NetworkBuilder:
                         sys.stderr.write("ERROR: Port dimension unmatched!\n")
                         return False
                     # Registering a connection
-                    self.__connections_from_to[from_unit + ":" + to_unit] = (from_port, to_port)
+                    key = from_unit + ":" + to_unit
+                    if key not in self.__connections_from_to:
+                        self.__connections_from_to[key] = []
+                    self.__connections_from_to[key].append((from_port, to_port))
                     if debug:
                         print(
                             "Creating a connection from " + from_port + " of " + from_unit + " to " + to_port +
@@ -360,16 +369,14 @@ class NetworkBuilder:
                 return False
         return True
 
-    def make_connections(self, module_name, sub_modules):
-        if module_name is not None:
-            self.__set_aliases(module_name)
-        else:
-            for submodule in sub_modules:
-                self.__set_aliases(submodule)
+    def make_connections(self, modules):
+        for submodule in modules:
+            self.__set_aliases(submodule)
         for key in self.__connections_from_to.keys():
-            from_port, to_port = self.__connections_from_to[key]
             module_names = key.split(':')
-            brica1.connect((self.unit_dic[module_names[0]], from_port), (self.unit_dic[module_names[1]], to_port))
+            for ports in self.__connections_from_to[key]:
+                from_port, to_port = ports
+                brica1.connect((self.unit_dic[module_names[0]], from_port), (self.unit_dic[module_names[1]], to_port))
 
     def __set_aliases(self, module_name):
         lower_modules = []
@@ -377,12 +384,14 @@ class NetworkBuilder:
         for sub_module in lower_modules:
             module_names = module_name + ":" + sub_module
             if module_names in self.__alias_in:
-                from_port, to_port = self.__alias_in[module_names]
-                self.unit_dic[sub_module].alias_in_port(self.unit_dic[module_name], from_port, to_port)
+                for ports in self.__alias_in[module_names]:
+                    from_port, to_port = ports
+                    self.unit_dic[sub_module].alias_in_port(self.unit_dic[module_name], from_port, to_port)
             module_names = sub_module + ":" + module_name
             if module_names in self.__alias_out:
-                from_port, to_port = self.__alias_out[module_names]  # from_port: sub / to_port: upper
-                self.unit_dic[sub_module].alias_out_port(self.unit_dic[module_name], to_port, from_port)
+                for ports in self.__alias_out[module_names]:
+                    from_port, to_port = ports  # from_port: sub / to_port: upper
+                    self.unit_dic[sub_module].alias_out_port(self.unit_dic[module_name], to_port, from_port)
             self.__set_aliases(sub_module)
 
     def __get_lower_modules(self, module, lower_modules):
@@ -634,7 +643,7 @@ class NetworkBuilder:
         else:
             sys.stderr.write("ERROR: ToPort not specified while adding a connection!\n")
             return False
-
+        '''
         # Multiple registration
         if defined_connection and defined_connection[0] != to_unit + "." + to_port:
             sys.stderr.write("ERROR: Defined port {0} is different from the previous ones in connection {1}!\n".format(
@@ -644,7 +653,7 @@ class NetworkBuilder:
             sys.stderr.write("ERROR: Defined port {0} is different from the previous ones in connection {1}!\n".format(
                 from_unit + "." + from_port, connection_name))
             return False
-
+        '''
         if "Comment" in connection:
             self.__comments["Connections." + connection_name] = connection["Comment"]
 
@@ -686,11 +695,11 @@ class AgentBuilder:
                 sub_modules.append(unit_key)
                 if debug:
                     print("Adding a module " + unit_key + " to a BriCA agent.")
-        network.make_connections(None, sub_modules)
+        network.make_connections(sub_modules)
         self.unit_dic = network.unit_dic
         return agent
 
-    def create_gym_agent(self, network, env):
+    def create_gym_agent(self, network, model, env):
         for module, super_module in network.super_module.items():
             if super_module in network.module_dictionary:
                 if isinstance(network.unit_dic[module], brica1.Component):
@@ -700,20 +709,14 @@ class AgentBuilder:
                 if debug:
                     print("Adding a module " + module + " to " + super_module + ".")
 
-        # Main logic
-
-        agent = brica1.Agent()
         sub_modules = []
         for unit_key in network.unit_dic.keys():
             if unit_key not in network.super_module:   # top level
-                if isinstance(network.unit_dic[unit_key], brica1.Component):
-                    agent.add_component(unit_key, network.unit_dic[unit_key])
-                elif isinstance(network.unit_dic[unit_key], brica1.Module):
-                    agent.add_submodule(unit_key, network.unit_dic[unit_key])
                 sub_modules.append(unit_key)
-                if debug:
-                    print("Adding a module " + unit_key + " to a BriCA agent.")
-        network.make_connections(None, sub_modules)
+
+        # Main logic
+        agent = brica1.brica_gym.GymAgent(model, env)
+        network.make_connections(sub_modules)
         self.unit_dic = network.unit_dic
         return agent
 
