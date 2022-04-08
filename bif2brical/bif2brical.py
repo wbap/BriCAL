@@ -102,7 +102,8 @@ def define_connections(modules, module_uris, g):
         if to_module not in modules:
             modules[to_module] = {"Name": to_module, "Ports": []}
             module_uris[to_module] = row.to_uri
-        connections[connection] = {"Name": connection, "FromModule": from_module, "ToModule": to_module}
+        connections[connection] = {"Name": connection, "FromModule": from_module, "FromPort": connection,
+                                   "ToModule": to_module, "ToPort": connection}
     return connections, base_uri
 
 
