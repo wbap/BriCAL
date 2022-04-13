@@ -46,12 +46,9 @@ class NetworkBuilder:
         self.__alias_in = {}
         self.__alias_out = {}
         self.unit_dic = {}  # Map: BriCA unit name ⇒ unit object
-        self.super_module = {}   # Sub ⇒ Super modules
-        self.sub_modules = {}    # Super ⇒ Sub modules
+        self.super_module = {}  # Sub ⇒ Super modules
+        self.sub_modules = {}  # Super ⇒ Sub modules
         self.module_dictionary = {}
-        self.__ports = {}
-        self.__connections = {}
-        self.__comments = {}
         self.__network = {}
         self.__load_files = []
 
@@ -237,87 +234,90 @@ class NetworkBuilder:
 
         # Connection consistency check
         for k, v in self.__connections.items():
-            # Fatal if the specified ports have not been defined.
-            if not v[0] in self.__ports:
-                sys.stderr.write("ERROR: The specified port {0} is not defined in connection {1}.\n".format(v[0], k))
-                return False
-            if not v[1] in self.__ports:
-                sys.stderr.write("ERROR: The specified port {0} is not defined in connection {1}.\n".format(v[1], k))
-                return False
+            for connection in v:
+                # Fatal if the specified ports have not been defined.
+                if not connection[0] in self.__ports:
+                    sys.stderr.write("ERROR: The specified port {0} is not defined in connection {1}.\n"
+                                     .format(connection[0], k))
+                    return False
+                if not connection[1] in self.__ports:
+                    sys.stderr.write("ERROR: The specified port {0} is not defined in connection {1}.\n"
+                                     .format(connection[1], k))
+                    return False
 
-            tp = v[0].split(".")
-            to_port = tp[len(tp) - 1]
-            fp = v[1].split(".")
-            from_port = fp[len(fp) - 1]
-            to_unit = self.__ports[v[0]]["Module"]
-            from_unit = self.__ports[v[1]]["Module"]
+                tp = connection[0].split(".")
+                to_port = tp[len(tp) - 1]
+                fp = connection[1].split(".")
+                from_port = fp[len(fp) - 1]
+                to_unit = self.__ports[connection[0]]["Module"]
+                from_unit = self.__ports[connection[1]]["Module"]
 
-            # else if from_unit is an upper module of to_unit
-            if self.upper_p(from_unit, to_unit):
-                try:
-                    fr_port_obj = self.unit_dic[from_unit].get_in_port(from_port)
-                    to_port_obj = self.unit_dic[to_unit].get_in_port(to_port)
-                    if fr_port_obj.buffer.shape != to_port_obj.buffer.shape:
-                        sys.stderr.write("ERROR: Port dimension unmatched!\n")
+                # else if from_unit is an upper module of to_unit
+                if self.upper_p(from_unit, to_unit):
+                    try:
+                        fr_port_obj = self.unit_dic[from_unit].get_in_port(from_port)
+                        to_port_obj = self.unit_dic[to_unit].get_in_port(to_port)
+                        if fr_port_obj.buffer.shape != to_port_obj.buffer.shape:
+                            sys.stderr.write("ERROR: Port dimension unmatched!\n")
+                            return False
+                        # Registering a connection (alias)
+                        key = from_unit + ":" + to_unit
+                        if key not in self.__alias_in:
+                            self.__alias_in[key] = []
+                        self.__alias_in[key].append((from_port, to_port))
+                        if debug:
+                            print(
+                                "Creating a connection (alias) from " + from_port + " of " + from_unit + " to "
+                                + to_port + " of " + to_unit + ".")
+                    except KeyError:
+                        sys.stderr.write(
+                            "ERROR: Error adding a connection from the super module " + from_unit + " to " + to_unit +
+                            " but not from an input port to an input port!\n")
                         return False
-                    # Registering a connection (alias)
-                    key = from_unit + ":" + to_unit
-                    if key not in self.__alias_in:
-                        self.__alias_in[key] = []
-                    self.__alias_in[key].append((from_port, to_port))
-                    if debug:
-                        print(
-                            "Creating a connection (alias) from " + from_port + " of " + from_unit + " to "
-                            + to_port + " of " + to_unit + ".")
-                except KeyError:
-                    sys.stderr.write(
-                        "ERROR: Error adding a connection from the super module " + from_unit + " to " + to_unit +
-                        " but not from an input port to an input port!\n")
-                    return False
-            # else if to_unit is an upper module of from_unit
-            elif self.upper_p(to_unit, from_unit):
-                try:
-                    fr_port_obj = self.unit_dic[from_unit].get_out_port(from_port)
-                    to_port_obj = self.unit_dic[to_unit].get_out_port(to_port)
-                    if fr_port_obj.buffer.shape != to_port_obj.buffer.shape:
-                        sys.stderr.write("ERROR: Port dimension unmatched!\n")
+                # else if to_unit is an upper module of from_unit
+                elif self.upper_p(to_unit, from_unit):
+                    try:
+                        fr_port_obj = self.unit_dic[from_unit].get_out_port(from_port)
+                        to_port_obj = self.unit_dic[to_unit].get_out_port(to_port)
+                        if fr_port_obj.buffer.shape != to_port_obj.buffer.shape:
+                            sys.stderr.write("ERROR: Port dimension unmatched!\n")
+                            return False
+                        # Registering a connection (alias)
+                        key = from_unit + ":" + to_unit
+                        if key not in self.__alias_out:
+                            self.__alias_out[key] = []
+                        self.__alias_out[key].append((from_port, to_port))
+                        if debug:
+                            print(
+                                "Creating a connection (alias) from " + from_port + " of " + from_unit + " to " +
+                                to_port + " of " + to_unit + ".\n")
+                    except KeyError:
+                        sys.stderr.write(
+                            "ERROR: Error adding a connection from " + from_unit + " to its super module " + to_unit
+                            + " but not from an output port to an output port!")
                         return False
-                    # Registering a connection (alias)
-                    key = from_unit + ":" + to_unit
-                    if key not in self.__alias_out:
-                        self.__alias_out[key] = []
-                    self.__alias_out[key].append((from_port, to_port))
-                    if debug:
-                        print(
-                            "Creating a connection (alias) from " + from_port + " of " + from_unit + " to " + to_port +
-                            " of " + to_unit + ".\n")
-                except KeyError:
-                    sys.stderr.write(
-                        "ERROR: Error adding a connection from " + from_unit + " to its super module " + to_unit
-                        + " but not from an output port to an output port!")
-                    return False
-            # else two modules are not in inclusion relation
-            else:
-                try:
-                    fr_port_obj = self.unit_dic[from_unit].get_out_port(from_port)
-                    to_port_obj = self.unit_dic[to_unit].get_in_port(to_port)
-                    if fr_port_obj.buffer.shape != to_port_obj.buffer.shape:
-                        sys.stderr.write("ERROR: Port dimension unmatched!\n")
+                # else two modules are not in inclusion relation
+                else:
+                    try:
+                        fr_port_obj = self.unit_dic[from_unit].get_out_port(from_port)
+                        to_port_obj = self.unit_dic[to_unit].get_in_port(to_port)
+                        if fr_port_obj.buffer.shape != to_port_obj.buffer.shape:
+                            sys.stderr.write("ERROR: Port dimension unmatched!\n")
+                            return False
+                        # Registering a connection
+                        key = from_unit + ":" + to_unit
+                        if key not in self.__connections_from_to:
+                            self.__connections_from_to[key] = []
+                        self.__connections_from_to[key].append((from_port, to_port))
+                        if debug:
+                            print(
+                                "Creating a connection from " + from_port + " of " + from_unit + " to " + to_port +
+                                " of " + to_unit + ".\n")
+                    except KeyError:
+                        sys.stderr.write(
+                            "ERROR: adding a connection from " + from_unit + " to " + to_unit +
+                            " on the same level but not from an output port to an input port!\n")
                         return False
-                    # Registering a connection
-                    key = from_unit + ":" + to_unit
-                    if key not in self.__connections_from_to:
-                        self.__connections_from_to[key] = []
-                    self.__connections_from_to[key].append((from_port, to_port))
-                    if debug:
-                        print(
-                            "Creating a connection from " + from_port + " of " + from_unit + " to " + to_port +
-                            " of " + to_unit + ".\n")
-                except KeyError:
-                    sys.stderr.write(
-                        "ERROR: adding a connection from " + from_unit + " to " + to_unit +
-                        " on the same level but not from an output port to an input port!\n")
-                    return False
         return True
 
     def check_grounding(self):
@@ -347,7 +347,7 @@ class NetworkBuilder:
                     mod_name = v[0]
                     class_name = v[1]
                     try:
-                        mod = __import__(mod_name, globals(), locals(), [class_name], 0)    # -1)
+                        mod = __import__(mod_name, globals(), locals(), [class_name], 0)  # -1)
                         klass = getattr(mod, class_name)
                         self.unit_dic[module_name] = klass.__new__(klass)
                     except AttributeError:
@@ -617,10 +617,6 @@ class NetworkBuilder:
             sys.stderr.write("ERROR: Name not specified while adding a connection!\n")
             return False
 
-        defined_connection = None
-        if connection_name in self.__connections:
-            defined_connection = self.__connections[connection_name]
-
         if "FromModule" in connection:
             from_unit = connection["FromModule"]
             from_unit = self.__prefix_base_name_space(from_unit)
@@ -643,21 +639,12 @@ class NetworkBuilder:
         else:
             sys.stderr.write("ERROR: ToPort not specified while adding a connection!\n")
             return False
-        '''
-        # Multiple registration
-        if defined_connection and defined_connection[0] != to_unit + "." + to_port:
-            sys.stderr.write("ERROR: Defined port {0} is different from the previous ones in connection {1}!\n".format(
-                to_unit + "." + to_port, connection_name))
-            return False
-        if defined_connection and defined_connection[1] != from_unit + "." + from_port:
-            sys.stderr.write("ERROR: Defined port {0} is different from the previous ones in connection {1}!\n".format(
-                from_unit + "." + from_port, connection_name))
-            return False
-        '''
         if "Comment" in connection:
             self.__comments["Connections." + connection_name] = connection["Comment"]
 
-        self.__connections[connection_name] = (to_unit + "." + to_port, from_unit + "." + from_port)
+        if connection_name not in self.__connections:
+            self.__connections[connection_name] = []
+        self.__connections[connection_name].append((to_unit + "." + to_port, from_unit + "." + from_port))
         return True
 
 
@@ -687,7 +674,7 @@ class AgentBuilder:
         agent = brica1.Agent()
         sub_modules = []
         for unit_key in network.unit_dic.keys():
-            if unit_key not in network.super_module:   # top level
+            if unit_key not in network.super_module:  # top level
                 if isinstance(network.unit_dic[unit_key], brica1.Component):
                     agent.add_component(unit_key, network.unit_dic[unit_key])
                 elif isinstance(network.unit_dic[unit_key], brica1.Module):
@@ -711,7 +698,7 @@ class AgentBuilder:
 
         sub_modules = []
         for unit_key in network.unit_dic.keys():
-            if unit_key not in network.super_module:   # top level
+            if unit_key not in network.super_module:  # top level
                 sub_modules.append(unit_key)
 
         # Main logic

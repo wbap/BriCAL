@@ -44,8 +44,10 @@ network = network_builder.get_network()
 
 if not network_builder.check_consistency():
     sys.stderr.write("ERROR: INCONSISTENT!\n")
+    exit(-1)
 if not network_builder.check_grounding():
     sys.stderr.write("ERROR: NOT_GROUNDED!\n")
+    exit(-1)
 
 # Initialize components
 for module, v in network["ModuleDictionary"].items():
