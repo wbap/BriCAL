@@ -448,11 +448,10 @@ class NetworkBuilder:
         ports = []
         if "Ports" in module:
             ports = module["Ports"]
-        # Multiple registration
-        if defined_module:
-            for p in defined_module["Ports"]:
-                if p not in ports:
-                    ports.append(p)
+            for port in ports:  # BriCAL version 2
+                if isinstance(port, dict):
+                    port["Module"] = module["Name"].strip()
+                    self.__set_a_port(port)
 
         implclass = ""
         if "ImplClass" in module:

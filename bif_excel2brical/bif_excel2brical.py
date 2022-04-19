@@ -47,7 +47,7 @@ def upper_p(module1, module2, modules):
             return True
         else:
             for submodule in modules[module1]['SubModules']:
-                if upper_p(module1, submodule, modules):
+                if upper_p(submodule, module2, modules):
                     return True
     return False
 
@@ -94,12 +94,6 @@ def createConnections(ws, modules):
         connection = {"Name": connectionID, "FromModule": fromCircuit, "FromPort": fromPort,
                       "ToModule": toCircuit, "ToPort": toPort}
         connections.append(connection)
-        if "Ports" not in modules[fromCircuit]:
-            modules[fromCircuit]["Ports"] = []
-        modules[fromCircuit]["Ports"].append(fromPort)
-        if "Ports" not in modules[toCircuit]:
-            modules[toCircuit]["Ports"] = []
-        modules[toCircuit]["Ports"].append(fromPort)
         ports = add_ports(connection, shape, modules, ports)
     return connections, ports
 
@@ -116,11 +110,26 @@ def add_ports(connection, shape, modules, ports):
     else:
         fromType = "Output"
         toType = "Input"
-    fromPort = {"Name": connection["FromPort"], "Module": fromModule, "Type": fromType, "Shape": shape}
-    ports.append(fromPort)
-    fromPort = {"Name": connection["ToPort"], "Module": toModule, "Type": toType, "Shape": shape}
-    ports.append(fromPort)
+    fromPort = {"Name": connection["FromPort"], "Type": fromType, "Shape": shape}
+    if "Ports" in modules[fromModule]:
+        if not defined_port(fromPort, modules[fromModule]["Ports"]):
+            modules[fromModule]["Ports"].append(fromPort)
+    else:
+        modules[fromModule]["Ports"] = [fromPort]
+    toPort = {"Name": connection["ToPort"], "Type": toType, "Shape": shape}
+    if "Ports" in modules[toModule]:
+        if not defined_port(toPort, modules[toModule]["Ports"]):
+            modules[toModule]["Ports"].append(toPort)
+    else:
+        modules[toModule]["Ports"] = [toPort]
     return ports
+
+
+def defined_port(port_2B_checked, ports):
+    for port in ports:
+        if port_2B_checked["Name"] == port["Name"] and port_2B_checked["Type"] == port["Type"]:
+            return True
+    return False
 
 
 def main():
@@ -144,11 +153,11 @@ def main():
 
     module_array = []
     for v in modules.values():
+        v["Ports"] = sorted(v["Ports"], key=lambda x: (x['Type'], x['Name']))
         module_array.append(v)
 
     output = {"Header": {"Type": "A", "Name": pname, "Base": pname, "Comment": description},
               "Modules": module_array,
-              "Ports": ports,
               "Connections": connections}
 
     fp = open(outfilePath, 'w')
