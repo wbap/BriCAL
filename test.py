@@ -15,9 +15,13 @@ def print_network(network):
     for k, v in network.items():
         if len(v):
             print(k + ":")
-            for k2, v2 in sorted(v.items()):
-                print(k2 + "\t")
-                print(v2)
+            if isinstance(v, dict):
+                for k2, v2 in sorted(v.items()):
+                    print(k2 + "\t")
+                    print(v2)
+            else:
+                for v2 in v:
+                    print(v2)
 
 
 if len(sys.argv) != 2:
@@ -81,7 +85,7 @@ for module, v in network["ModuleDictionary"].items():
     ports = v["Ports"]
     buffers.append([module, component, ports])
     if "InputModule" in module:  # Setting of initial data
-        l = network["Ports"][module + "." + ports[0]]["Shape"]
+        l = network_builder.get_port(module, ports[0])["Shape"]
         data = []
         for i in range(l):
             data.append(i)
@@ -92,13 +96,14 @@ for module, v in network["ModuleDictionary"].items():
     if "PipeComponent" in impl:
         ip = ""
         op = ""
-        for port in ports:
-            if module + "." + port in network["Ports"]:
-                io = network["Ports"][module + "." + port]["IO"]
+        for port_name in ports:
+            port = network_builder.get_port(module, port_name)
+            if port:
+                io = port["IO"]
                 if io == "Input":
-                    ip = port
+                    ip = port_name
                 elif io == "Output":
-                    op = port
+                    op = port_name
             else:
                 sys.stderr.write("ERROR: No port in PipeComponent!\n")
                 exit()
@@ -113,7 +118,8 @@ for i in range(len(buffers)):
     print(scheduler.step())
     for b in buffers:
         for p in b[2]:
-            if network["Ports"][b[0] + "." + p]["IO"] == "Input":
+            port = network_builder.get_port(b[0], p)
+            if port["IO"] == "Input":
                 print(b[1].get_in_port(p).buffer)
             else:
                 print(b[1].get_out_port(p).buffer)

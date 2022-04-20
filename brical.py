@@ -36,7 +36,7 @@ class NetworkBuilder:
         Returns:
           NetworkBuilder: a new `NetworkBuilder` instance.
         """
-        self.__ports = {}
+        self.__ports = []
         self.__connections = {}
         self.__comments = {}
         self.__load_files = []
@@ -139,6 +139,12 @@ class NetworkBuilder:
         else:
             return False
 
+    def get_port(self, module_name, port_name):
+        for port in self.__ports:
+            if port["Name"] == module_name + "." + port_name and port["Module"] == module_name:
+                return port
+        return None
+
     def check_consistency(self):
         """
         Args:
@@ -183,13 +189,8 @@ class NetworkBuilder:
             if len(ports) == 0:
                 sys.stderr.write("ERROR: The specified module {0} does not have ports!\n".format(module_name))
                 return False
-            for port in ports:
-                if not module_name + "." + port in self.__ports:
-                    sys.stderr.write("ERROR: The specified module {0} does not have the port  {1}!\n".
-                                     format(module_name, port))
-                    return False
 
-        for port_name, v in self.__ports.items():
+        for v in self.__ports:
             # Fatal if the specified modules have not been defined.
             if "Module" not in v:
                 sys.stderr.write("ERROR: Module is not defined in the port {0}!\n".format(port_name))
@@ -198,7 +199,7 @@ class NetworkBuilder:
             module_name = v["Module"]
             if module_name not in self.module_dictionary:
                 sys.stderr.write(
-                    "ERROR: Specified module {0} is not defined in the port {1}!\n".format(module_name, port_name))
+                    "ERROR: Module {0} in a port definition is not defined!\n".format(module_name))
                 return False
 
             # Fatal if the shape has not been defined.
@@ -213,12 +214,23 @@ class NetworkBuilder:
 
             # Fatal if the specified modules do not have the port, abort with a message.
             module = self.module_dictionary[module_name]
+            port_name = v["Name"]
             pv = port_name.split(".")
             last_port_name = pv[len(pv) - 1]
-            if last_port_name not in module["Ports"]:
-                sys.stderr.write("ERROR: Port {0} is not defined in the module {1}!\n"
-                                 .format(last_port_name, module_name))
-                return False
+            found = False
+            if isinstance(module["Ports"][0], str):  # BriCAL version 1
+                if last_port_name not in module["Ports"]:
+                    sys.stderr.write("ERROR: Port {0} is not defined in the module {1}!\n"
+                                     .format(last_port_name, module_name))
+                    return False
+            else:  # BriCAL version 2
+                for port in module["Ports"]:
+                    if port["Name"] == last_port_name and port["Type"] == v["IO"]:
+                        found = True
+                if not found:
+                    sys.stderr.write("ERROR: Port {0} is not defined in the module {1}!\n"
+                                     .format(last_port_name, module_name))
+                    return False
 
             module = self.unit_dic[module_name]
             if v["IO"] == "Input":
@@ -236,11 +248,12 @@ class NetworkBuilder:
         for k, v in self.__connections.items():
             for connection in v:
                 # Fatal if the specified ports have not been defined.
-                if not connection[0] in self.__ports:
+                port_names = [port.get("Name") for port in self.__ports]
+                if not connection[0] in port_names:
                     sys.stderr.write("ERROR: The specified port {0} is not defined in connection {1}.\n"
                                      .format(connection[0], k))
                     return False
-                if not connection[1] in self.__ports:
+                if not connection[1] in port_names:
                     sys.stderr.write("ERROR: The specified port {0} is not defined in connection {1}.\n"
                                      .format(connection[1], k))
                     return False
@@ -249,8 +262,8 @@ class NetworkBuilder:
                 to_port = tp[len(tp) - 1]
                 fp = connection[1].split(".")
                 from_port = fp[len(fp) - 1]
-                to_unit = self.__ports[connection[0]]["Module"]
-                from_unit = self.__ports[connection[1]]["Module"]
+                to_unit = tp[0] + "." + tp[1]
+                from_unit = fp[0] + "." + fp[1]
 
                 # else if from_unit is an upper module of to_unit
                 if self.upper_p(from_unit, to_unit):
@@ -271,7 +284,8 @@ class NetworkBuilder:
                                 + to_port + " of " + to_unit + ".")
                     except KeyError:
                         sys.stderr.write(
-                            "ERROR: Error adding a connection from the super module " + from_unit + " to " + to_unit +
+                            "ERROR: Error adding a connection from the super module port " + from_unit + "." +
+                            from_port + " to " + to_unit + "." + to_port +
                             " but not from an input port to an input port!\n")
                         return False
                 # else if to_unit is an upper module of from_unit
@@ -293,7 +307,8 @@ class NetworkBuilder:
                                 to_port + " of " + to_unit + ".\n")
                     except KeyError:
                         sys.stderr.write(
-                            "ERROR: Error adding a connection from " + from_unit + " to its super module " + to_unit
+                            "ERROR: Error adding a connection from " + from_unit + "." + from_port +
+                            " to its super module port " + to_unit + "." + to_port
                             + " but not from an output port to an output port!")
                         return False
                 # else two modules are not in inclusion relation
@@ -360,10 +375,14 @@ class NetworkBuilder:
         for module_name, v in self.module_dictionary.items():
             try:
                 ports = self.module_dictionary[module_name]['Ports']
-                for port_name in ports:
-                    full_port_name = module_name + "." + port_name
-                    port_v = self.__ports[full_port_name]
-                    self.__make_a_port(module_name, port_v['IO'], port_name, port_v['Shape'])
+                if isinstance(ports[0], str):   # BriCAL version 1
+                    for port_name in ports:
+                        port_v = self.get_port(module_name, port_name)
+                        self.__make_a_port(module_name, port_v['IO'], port_name, port_v['Shape'])
+                else:   # BriCAL version 2
+                    for port in ports:
+                        port_v = self.get_port(module_name, port["Name"])
+                        self.__make_a_port(module_name, port_v['IO'], port["Name"], port_v['Shape'])
             except KeyError:
                 sys.stderr.write("ERROR: cannot create a port for Component " + module_name + "!\n")
                 return False
@@ -528,8 +547,8 @@ class NetworkBuilder:
             for port in ports:
                 if not self.__set_a_port(port):
                     return False
-        else:
-            sys.stderr.write("Warning: No `Ports` in the language file.\n")
+        # else: #  Commented out for version 2
+        #    sys.stderr.write("Warning: No `Ports` in the language file.\n")
 
         return True
 
@@ -548,25 +567,10 @@ class NetworkBuilder:
             return False
         port_name = port_module + "." + port_name
 
-        defined_port = None
-        if port_name in self.__ports:
-            defined_port = self.__ports[port_name]
-
-        # Multiple registration
-        if defined_port:
-            if port_module != defined_port["Module"]:
-                sys.stderr.write("ERROR: Module {0} defined in the port {1} is already defined as a module {2}.\n"
-                                 .format(port_module, port_name, self.__ports[port_name]["Module"]))
-                return False
-
         if "Type" in port:
             port_type = port["Type"].strip()
             if port_type != "Input" and port_type != "Output":
                 sys.stderr.write("ERROR: Invalid port type {0}!\n".format(port_type))
-                return False
-            elif defined_port and port_type != defined_port["IO"]:
-                sys.stderr.write(
-                    "ERROR: The port type of port {0} differs from previously defined port type!\n".format(port_name))
                 return False
         else:
             sys.stderr.write("ERROR: Type not specified while adding a port!\n")
@@ -583,9 +587,9 @@ class NetworkBuilder:
             if int(shape[0]) < 1:
                 sys.stderr.write("ERROR: Port dimension < 1!\n")
                 return False
-            self.__ports[port_name] = {"IO": port_type, "Module": port_module, "Shape": shape[0]}
+            self.__ports.append({"Name": port_name, "IO": port_type, "Module": port_module, "Shape": shape[0]})
         else:
-            self.__ports[port_name] = {"IO": port_type, "Module": port_module}
+            self.__ports.append({"Name": port_name, "IO": port_type, "Module": port_module})
 
         if "Comment" in port:
             self.__comments["Ports." + port_name] = port["Comment"]
