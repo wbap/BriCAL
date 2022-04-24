@@ -1,0 +1,112 @@
+{
+ "Header": {
+  "Type": "A",
+  "Name": "n001",
+  "Base": "n001",
+  "Comment": "Usecase with the n001 test set for BriCA"
+ },
+ "Modules": [
+  {
+   "Name": "SuperMainModule",
+   "Comment": ":",
+   "SubModules": [
+    "MainComponent"
+   ],
+   "Ports": [
+    {
+     "Name": "PortS1",
+     "Type": "Input",
+     "Shape": [
+      3
+     ]
+    },
+    {
+     "Name": "PortS2",
+     "Type": "Output",
+     "Shape": [
+      3
+     ]
+    }
+   ]
+  },
+  {
+   "Name": "InputComponent",
+   "Comment": ":",
+   "ImplClass": "brica1.ConstantComponent",
+   "Ports": [
+    {
+     "Name": "InputComponentPort",
+     "Type": "Output",
+     "Shape": [
+      3
+     ]
+    }
+   ]
+  },
+  {
+   "Name": "MainComponent",
+   "Comment": ":",
+   "ImplClass": "brica1.PipeComponent",
+   "Ports": [
+    {
+     "Name": "Port1",
+     "Type": "Input",
+     "Shape": [
+      3
+     ]
+    },
+    {
+     "Name": "Port2",
+     "Type": "Output",
+     "Shape": [
+      3
+     ]
+    }
+   ]
+  },
+  {
+   "Name": "OutputComponent",
+   "Comment": ":",
+   "ImplClass": "brica1.NullComponent",
+   "Ports": [
+    {
+     "Name": "OutputComponentPort",
+     "Type": "Input",
+     "Shape": [
+      3
+     ]
+    }
+   ]
+  }
+ ],
+ "Connections": [
+  {
+   "Name": "InputComponent-SuperMainModule",
+   "FromModule": "InputComponent",
+   "FromPort": "InputComponentPort",
+   "ToModule": "SuperMainModule",
+   "ToPort": "PortS1"
+  },
+  {
+   "Name": "SuperMainModule-MainComponent",
+   "FromModule": "SuperMainModule",
+   "FromPort": "PortS1",
+   "ToModule": "MainComponent",
+   "ToPort": "Port1"
+  },
+  {
+   "Name": "MainComponent-SuperMainModule",
+   "FromModule": "MainComponent",
+   "FromPort": "Port2",
+   "ToModule": "SuperMainModule",
+   "ToPort": "PortS2"
+  },
+  {
+   "Name": "SuperMainModule-OutputComponent",
+   "FromModule": "SuperMainModule",
+   "FromPort": "PortS2",
+   "ToModule": "OutputComponent",
+   "ToPort": "OutputComponentPort"
+  }
+ ]
+}

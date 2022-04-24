@@ -26,6 +26,8 @@ def createModules(ws):
                 else:
                     implClass = clm6.strip()
                 labels = ws.cell(row=i + 2, column=2).value
+                if labels is None:
+                    labels = ""
                 parts = ws.cell(row=i + 2, column=4).value
                 submodules = []
                 if parts is not None:
