@@ -14,7 +14,7 @@ import_modules = [
     'import brical'
 ]
 
-main_code = [
+main_code1 = [
     'def main():',
     '    parser = argparse.ArgumentParser(description=\'$PROJECT_DESCRIPTION$\')',
     '    parser.add_argument(\'--dump\', help=\'dump file path\')',
@@ -42,16 +42,14 @@ main_code = [
     '        sys.stderr.write("ERROR: " + args.brical + " is not grounded!")',
     '        exit(-1)',
     '',
-    '    train = {"episode_count": args.episode_count, "max_steps": args.max_steps, "dump_flags": args.dump_flags}',
+    '    train = {"episode_count": args.episode_count, "max_steps": args.max_steps}',
     '    config[\'train\'] = train',
     '',
     '    env = gym.make(config[\'env\'][\'name\'], config=config[\'env\'])',
-    '',
-    '    nb.unit_dic[\'MinM2SAgent.ActionChooser\'].__init__(config)',
-    '    nb.unit_dic[\'MinM2SAgent.WorkingMemory\'].__init__(config)',
-    '    nb.unit_dic[\'MinM2SAgent.Gate\'].__init__(config)',
-    '    nb.unit_dic[\'MinM2SAgent.PolicyHandler\'].__init__(config)',
-    '',
+    ''
+]
+
+main_code2 = [
     '    nb.make_ports()',
     '',
     '    agent_builder = brical.AgentBuilder()',
@@ -148,17 +146,26 @@ def main():
     else:
         top_module = '$TOP_MODULE$'
 
+    components = []
+    for key, value in nb.module_dictionary.items():
+        if 'ImplClass' in value and value['ImplClass'] != '':
+            components.append(key)
+
     # main code
-    for item in main_code:
+    for item in main_code1:
         itm = item.replace('$PROJECT_DESCRIPTION$', nw['Comments'][hdr_comments]).\
             replace('$PROJECT_NAME$', nb.base_name_space). \
             replace('$TOP_MODULE$', top_module)
         wf.write(itm + '\n')
 
-    components = []
-    for key, value in nb.module_dictionary.items():
-        if 'ImplClass' in value and value['ImplClass'] != '':
-            components.append(key)
+    for component in components:
+        wf.write('    nb.unit_dic[\'' + component + '\'].__init__(config)\n')
+
+    for item in main_code2:
+        itm = item.replace('$PROJECT_DESCRIPTION$', nw['Comments'][hdr_comments]).\
+            replace('$PROJECT_NAME$', nb.base_name_space). \
+            replace('$TOP_MODULE$', top_module)
+        wf.write(itm + '\n')
 
     # closing
     for component in components:
