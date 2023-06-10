@@ -67,10 +67,12 @@ main_code2 = [
     '                # TODO: WRITE END OF ENV CYCLE CODE HERE!!',
     '            if agent.env.done:',
     '                break',
-    '        agent.env.flush = True',
+    '        agent.env.flush = True'
+]
+
+main_code3 = [
     '        # TODO: WRITE END OF EPISODE CODE (component reset etc.) HERE!!',
     '        agent.env.reset()',
-    '        agent.env.out_ports[\'token_out\'] = np.array([0])',
     '        agent.env.done = False',
     ''
 ]
@@ -95,6 +97,13 @@ def write_classes(name, ports, comment, wf):
     wf.write('\n')
     wf.write('    def fire(self):\n')
     wf.write('        pass  # TODO: WRITE CLASS LOGIC HERE!!\n')
+    wf.write('\n')
+    wf.write('    def reset(self):\n')
+    wf.write('        self.token = 0\n')
+    wf.write('        self.inputs[\'token_in\'] = np.array([0])\n')
+    wf.write('        self.results[\'token_out\'] = np.array([0])\n')
+    wf.write('        self.get_in_port(\'token_in\').buffer = self.inputs[\'token_in\']\n')
+    wf.write('        self.get_out_port(\'token_out\').buffer = self.results[\'token_out\']\n')
     for i in range(2):
         wf.write('\n')
 
@@ -166,6 +175,12 @@ def main():
             replace('$PROJECT_NAME$', nb.base_name_space). \
             replace('$TOP_MODULE$', top_module)
         wf.write(itm + '\n')
+
+    for component in components:
+        wf.write('        nb.unit_dic[\'' + component + '\'].reset()\n')
+
+    for item in main_code3:
+        wf.write(item + '\n')
 
     # closing
     for component in components:
