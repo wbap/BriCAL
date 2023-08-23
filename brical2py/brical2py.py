@@ -5,7 +5,7 @@ import sys
 import brical
 
 import_modules = [
-    'import gym',
+    'import gymnasium',
     'import numpy as np',
     'import sys',
     'import argparse',
@@ -45,7 +45,7 @@ main_code1 = [
     '    train = {"episode_count": args.episode_count, "max_steps": args.max_steps}',
     '    config[\'train\'] = train',
     '',
-    '    env = gym.make(config[\'env\'][\'name\'], config=config[\'env\'])',
+    '    env = gymnasium.make(config[\'env\'][\'name\'], config=config[\'env\'])',
     ''
 ]
 
