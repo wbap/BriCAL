@@ -271,7 +271,8 @@ class NetworkBuilder:
                         fr_port_obj = self.unit_dic[from_unit].get_in_port(from_port)
                         to_port_obj = self.unit_dic[to_unit].get_in_port(to_port)
                         if fr_port_obj.buffer.shape != to_port_obj.buffer.shape:
-                            sys.stderr.write("ERROR: Port dimension unmatched!\n")
+                            sys.stderr.write("ERROR: Port dimension unmatched! from " + from_unit + "." + from_port + str(fr_port_obj.buffer.shape) + 
+                            " to " + to_unit + "." + to_port  + str(to_port_obj.buffer.shape) + "\n")
                             return False
                         # Registering a connection (alias)
                         key = from_unit + ":" + to_unit
@@ -294,7 +295,8 @@ class NetworkBuilder:
                         fr_port_obj = self.unit_dic[from_unit].get_out_port(from_port)
                         to_port_obj = self.unit_dic[to_unit].get_out_port(to_port)
                         if fr_port_obj.buffer.shape != to_port_obj.buffer.shape:
-                            sys.stderr.write("ERROR: Port dimension unmatched!\n")
+                            sys.stderr.write("ERROR: Port dimension unmatched! from " + from_unit + "." + from_port + str(fr_port_obj.buffer.shape) + 
+                            " to " + to_unit + "." + to_port  + str(to_port_obj.buffer.shape) + "\n")
                             return False
                         # Registering a connection (alias)
                         key = from_unit + ":" + to_unit
@@ -317,7 +319,8 @@ class NetworkBuilder:
                         fr_port_obj = self.unit_dic[from_unit].get_out_port(from_port)
                         to_port_obj = self.unit_dic[to_unit].get_in_port(to_port)
                         if fr_port_obj.buffer.shape != to_port_obj.buffer.shape:
-                            sys.stderr.write("ERROR: Port dimension unmatched!\n")
+                            sys.stderr.write("ERROR: Port dimension unmatched! from " + from_unit + "." + from_port + str(fr_port_obj.buffer.shape) + 
+                            " to " + to_unit + "." + to_port  + str(to_port_obj.buffer.shape) + "\n")
                             return False
                         # Registering a connection
                         key = from_unit + ":" + to_unit
